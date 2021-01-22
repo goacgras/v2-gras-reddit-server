@@ -1,0 +1,18 @@
+{
+    "type": "postgres",
+    "host": "localhost",
+    "port": 5432,
+    "username": "postgres",
+    "password": "root",
+    "database": "v2-gras-reddit",
+    "synchronize": true,
+    "logging": false,
+    "entities": ["dist/entities/**/*.js"],
+    "migrations": ["dist/migrations/**/*.js"],
+    "subscribers": ["dist/subscribers/**/*.js"],
+    "cli": {
+        "entitiesDir": "dist/entities",
+        "migrationsDir": "dist/migrations",
+        "subscribersDir": "dist/subscribers"
+    }
+}
