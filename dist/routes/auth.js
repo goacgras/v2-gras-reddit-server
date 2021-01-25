@@ -42,8 +42,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var class_validator_1 = require("class-validator");
 var express_1 = require("express");
 var argon2_1 = __importDefault(require("argon2"));
+var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 var User_1 = require("../entities/User");
-var check_auth_1 = __importDefault(require("../middleware/check-auth"));
 var register = function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var _a, email, username, password, errors, userEmail, userUsername, user, err_1;
     return __generator(this, function (_b) {
@@ -87,7 +87,7 @@ var register = function (req, res) { return __awaiter(void 0, void 0, void 0, fu
     });
 }); };
 var login = function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, username, password, user, validPassword, err_2;
+    var _a, username, password, errors, user, validPassword, token, err_2;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0:
@@ -95,6 +95,14 @@ var login = function (req, res) { return __awaiter(void 0, void 0, void 0, funct
                 _b.label = 1;
             case 1:
                 _b.trys.push([1, 4, , 5]);
+                errors = {};
+                if (class_validator_1.isEmpty(username))
+                    errors.username = "Username must not be empty";
+                if (class_validator_1.isEmpty(password))
+                    errors.password = "Password must not be empty";
+                if (Object.keys(errors).length > 0) {
+                    return [2 /*return*/, res.status(401).json(errors)];
+                }
                 return [4 /*yield*/, User_1.User.findOne({ username: username })];
             case 2:
                 user = _b.sent();
@@ -103,9 +111,11 @@ var login = function (req, res) { return __awaiter(void 0, void 0, void 0, funct
                 return [4 /*yield*/, argon2_1.default.verify(user.password, password)];
             case 3:
                 validPassword = _b.sent();
-                if (!validPassword)
+                if (!validPassword) {
                     return [2 /*return*/, res.status(401).json({ password: "Invalid password" })];
-                req.session.username = user.username;
+                }
+                token = jsonwebtoken_1.default.sign({ username: username }, process.env.JWT_SECRET);
+                req.session.accessToken = token;
                 return [2 /*return*/, res.json(user)];
             case 4:
                 err_2 = _b.sent();
@@ -115,13 +125,32 @@ var login = function (req, res) { return __awaiter(void 0, void 0, void 0, funct
         }
     });
 }); };
-var test = function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+var me = function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var token, username, user, err_3;
     return __generator(this, function (_a) {
-        return [2 /*return*/, res.json("Whats up " + req.session.username)];
+        switch (_a.label) {
+            case 0:
+                _a.trys.push([0, 2, , 3]);
+                token = req.session.accessToken;
+                if (!token)
+                    throw new Error("Unauthenticated");
+                username = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET).username;
+                return [4 /*yield*/, User_1.User.findOne({ username: username })];
+            case 1:
+                user = _a.sent();
+                if (!user)
+                    throw new Error("Unauthenticated");
+                return [2 /*return*/, res.json(user)];
+            case 2:
+                err_3 = _a.sent();
+                console.log(err_3);
+                return [2 /*return*/, res.status(401).json({ error: err_3.message })];
+            case 3: return [2 /*return*/];
+        }
     });
 }); };
 var router = express_1.Router();
-router.get("/test", check_auth_1.default, test);
+router.get("/me", me);
 router.post("/register", register);
 router.post("/login", login);
 exports.default = router;

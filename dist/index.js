@@ -43,6 +43,8 @@ require("reflect-metadata");
 var typeorm_1 = require("typeorm");
 var express_1 = __importDefault(require("express"));
 var morgan_1 = __importDefault(require("morgan"));
+var dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
 var auth_1 = __importDefault(require("./routes/auth"));
 var trim_1 = __importDefault(require("./middleware/trim"));
 var redis_1 = __importDefault(require("redis"));
@@ -74,7 +76,7 @@ app.get("/", function (_, res) {
     res.send("hello world");
 });
 app.use("/api/auth", auth_1.default);
-app.listen(5000, function () { return __awaiter(void 0, void 0, void 0, function () {
+app.listen(process.env.PORT, function () { return __awaiter(void 0, void 0, void 0, function () {
     var err_1;
     return __generator(this, function (_a) {
         switch (_a.label) {

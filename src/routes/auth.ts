@@ -1,9 +1,9 @@
-import { validate } from "class-validator";
+import { validate, isEmpty } from "class-validator";
 import { Request, Response, Router } from "express";
 import argon2 from "argon2";
+import jwt from "jsonwebtoken";
 
 import { User } from "../entities/User";
-import { MyContext } from "../types";
 import { Session, SessionData } from "express-session";
 import checkAuth from "../middleware/check-auth";
 
@@ -47,21 +47,30 @@ const register = async (req: Request, res: Response) => {
 
 const login = async (
     req: Request & {
-        session: Session & Partial<SessionData> & { username?: string };
+        session: Session & Partial<SessionData> & { accessToken?: string };
     },
     res: Response
 ) => {
     const { username, password } = req.body;
 
     try {
+        let errors: any = {};
+
+        if (isEmpty(username)) errors.username = "Username must not be empty";
+        if (isEmpty(password)) errors.password = "Password must not be empty";
+        if (Object.keys(errors).length > 0) {
+            return res.status(401).json(errors);
+        }
+
         const user = await User.findOne({ username });
         if (!user) return res.status(404).json({ error: "User not found" });
 
         const validPassword = await argon2.verify(user.password, password);
-        if (!validPassword)
+        if (!validPassword) {
             return res.status(401).json({ password: "Invalid password" });
-
-        req.session.username = user.username;
+        }
+        const token = jwt.sign({ username }, process.env.JWT_SECRET);
+        req.session.accessToken = token;
 
         return res.json(user);
     } catch (err) {
@@ -70,17 +79,29 @@ const login = async (
     }
 };
 
-const test = async (
+const me = async (
     req: Request & {
-        session: Session & Partial<SessionData> & { username?: string };
+        session: Session & Partial<SessionData> & { accessToken?: string };
     },
     res: Response
 ) => {
-    return res.json(`Whats up ${req.session.username}`);
+    try {
+        const token = req.session.accessToken;
+        if (!token) throw new Error("Unauthenticated");
+
+        const { username }: any = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findOne({ username });
+        if (!user) throw new Error("Unauthenticated");
+
+        return res.json(user);
+    } catch (err) {
+        console.log(err);
+        return res.status(401).json({ error: err.message });
+    }
 };
 
 const router = Router();
-router.get("/test", checkAuth, test);
+router.get("/me", me);
 router.post("/register", register);
 router.post("/login", login);
 
