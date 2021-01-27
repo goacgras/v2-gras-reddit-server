@@ -5,14 +5,15 @@ import jwt from "jsonwebtoken";
 
 import { User } from "../entities/User";
 import { Session, SessionData } from "express-session";
-import checkAuth from "../middleware/check-auth";
+// import { MyContext } from "../types";
+import authMiddleware from "../middleware/check-auth";
 
-interface reqRes {
-    req: Request & {
-        session: Session & Partial<SessionData> & { username?: string };
-    };
-    res: Response;
-}
+// interface reqRes {
+//     req: Request & {
+//         session: Session & Partial<SessionData> & { username?: string };
+//     };
+//     res: Response;
+// }
 
 const register = async (req: Request, res: Response) => {
     const { email, username, password } = req.body;
@@ -85,24 +86,23 @@ const me = async (
     },
     res: Response
 ) => {
-    try {
-        const token = req.session.accessToken;
-        if (!token) throw new Error("Unauthenticated");
+    return res.json(res.locals.user);
+};
 
-        const { username }: any = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findOne({ username });
-        if (!user) throw new Error("Unauthenticated");
-
-        return res.json(user);
-    } catch (err) {
-        console.log(err);
-        return res.status(401).json({ error: err.message });
-    }
+const logout = async (req: Request, res: Response) => {
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({ success: false });
+        }
+        res.clearCookie("qid");
+        return res.status(200).json({ success: true });
+    });
 };
 
 const router = Router();
-router.get("/me", me);
+router.get("/me", authMiddleware, me);
 router.post("/register", register);
 router.post("/login", login);
+router.get("/logout", authMiddleware, logout);
 
 export default router;

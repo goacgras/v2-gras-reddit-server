@@ -33,6 +33,7 @@
     "scripts": {
         "watch": "tsc -w",
         "dev": "nodemon dist/index.js",
-        "start": "ts-node src/index.ts"
+        "start": "ts-node src/index.ts",
+        "typeorm": "ts-node ./node_modules/typeorm/cli.js"
     }
 }

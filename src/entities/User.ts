@@ -1,26 +1,25 @@
 import { IsEmail, Length } from "class-validator";
 import {
-    Entity,
-    PrimaryGeneratedColumn,
+    Entity as TOEntity,
     Column,
-    BaseEntity,
     Index,
-    CreateDateColumn,
-    UpdateDateColumn,
     BeforeInsert,
+    OneToMany,
 } from "typeorm";
 import argon2 from "argon2";
-import { classToPlain, Exclude } from "class-transformer";
+import { Exclude } from "class-transformer";
 
-@Entity("users")
-export class User extends BaseEntity {
+import Entity from "./Entity";
+import { Post } from "./Post";
+
+@TOEntity("users")
+export class User extends Entity {
+    //to use new User({...})
+    //some of the field could be nullable Partial<User>
     constructor(user: Partial<User>) {
         super();
         Object.assign(this, user);
     }
-    @Exclude()
-    @PrimaryGeneratedColumn()
-    id: number;
 
     @Index()
     @IsEmail()
@@ -37,18 +36,11 @@ export class User extends BaseEntity {
     @Length(6, 255, { message: "Password at least 6 character" })
     password: string;
 
-    @CreateDateColumn()
-    createdAt: Date;
-
-    @UpdateDateColumn()
-    updatedAt: Date;
-
     @BeforeInsert()
     async hashPassword() {
         this.password = await argon2.hash(this.password);
     }
 
-    toJSON() {
-        return classToPlain(this);
-    }
+    @OneToMany(() => Post, (post) => post.user)
+    posts: Post[];
 }
