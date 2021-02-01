@@ -70,22 +70,17 @@ const login = async (
         if (!validPassword) {
             return res.status(401).json({ password: "Invalid password" });
         }
-        const token = jwt.sign({ username }, process.env.JWT_SECRET);
+        const token = jwt.sign({ username }, process.env.JWT_SECRET!);
         req.session.accessToken = token;
 
         return res.json(user);
     } catch (err) {
         console.log(err);
-        return res.status(500).json(err);
+        return res.status(500).json({ error: "Something went wrong" });
     }
 };
 
-const me = async (
-    req: Request & {
-        session: Session & Partial<SessionData> & { accessToken?: string };
-    },
-    res: Response
-) => {
+const me = async (_: Request, res: Response) => {
     return res.json(res.locals.user);
 };
 

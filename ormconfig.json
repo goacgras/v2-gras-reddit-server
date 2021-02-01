@@ -5,7 +5,7 @@
     "username": "postgres",
     "password": "root",
     "database": "v2-gras-reddit",
-    "synchronize": true,
+    "synchronize": false,
     "logging": false,
     "entities": ["dist/entities/**/*.js"],
     "migrations": ["dist/migrations/**/*.js"],

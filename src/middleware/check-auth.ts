@@ -6,19 +6,24 @@ import { User } from "../entities/User";
 export default async (
     req: Request & {
         session: Session &
-            Partial<SessionData> & { username: string; accessToken: string };
+            Partial<SessionData> & {
+                username: string;
+                accessToken: string;
+            } & any;
     },
     res: Response,
     next: NextFunction
 ) => {
     try {
+        if (!req.session.accessToken) throw new Error("You are not welcome");
         const token = req.session.accessToken;
         if (!token) throw new Error("Unauthenticated");
 
-        const { username }: any = jwt.verify(token, process.env.JWT_SECRET);
+        const { username }: any = jwt.verify(token, process.env.JWT_SECRET!);
         const user = await User.findOne({ username });
         if (!user) throw new Error("Unauthenticated");
 
+        //save user in locals
         res.locals.user = user;
         return next();
     } catch (err) {

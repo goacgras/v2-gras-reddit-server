@@ -8,7 +8,6 @@ import {
 } from "typeorm";
 import Entity from "./Entity";
 import { User } from "./User";
-import { makeId, slugify } from "../util/helpers";
 import { Post } from "./Post";
 
 @TOEntity("subs")
@@ -32,7 +31,7 @@ export class Sub extends Entity {
     imageUrn: string;
 
     @Column({ nullable: true })
-    banned: string;
+    bannerUrn: string;
 
     @ManyToOne(() => User)
     //name the column not default
