@@ -8,12 +8,12 @@ import { Session, SessionData } from "express-session";
 // import { MyContext } from "../types";
 import authMiddleware from "../middleware/check-auth";
 
-// interface reqRes {
-//     req: Request & {
-//         session: Session & Partial<SessionData> & { username?: string };
-//     };
-//     res: Response;
-// }
+const mapErrors = (errors: Object[]) => {
+    return errors.reduce((prev: any, err: any) => {
+        prev[err.property] = Object.entries(err.constraints)[0][1];
+        return prev;
+    }, {});
+};
 
 const register = async (req: Request, res: Response) => {
     const { email, username, password } = req.body;
@@ -35,7 +35,10 @@ const register = async (req: Request, res: Response) => {
         const user = new User({ email, username, password });
 
         errors = await validate(user);
-        if (errors.length > 0) return res.status(400).json({ errors });
+        if (errors.length > 0) {
+            return res.status(400).json(mapErrors(errors));
+            // return res.status(400).json({ errors });
+        }
         await user.save();
 
         //return user
@@ -64,7 +67,7 @@ const login = async (
         }
 
         const user = await User.findOne({ username });
-        if (!user) return res.status(404).json({ error: "User not found" });
+        if (!user) return res.status(404).json({ username: "User not found" });
 
         const validPassword = await argon2.verify(user.password, password);
         if (!validPassword) {
