@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import { Session, SessionData } from "express-session";
 import { User } from "../entities/User";
 
+//token is in redis, user is in locals
 export default async (
     req: Request & {
         session: Session &

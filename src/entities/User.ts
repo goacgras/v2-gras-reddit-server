@@ -11,6 +11,7 @@ import { Exclude } from "class-transformer";
 
 import Entity from "./Entity";
 import { Post } from "./Post";
+import { Vote } from "./Vote";
 
 @TOEntity("users")
 export class User extends Entity {
@@ -37,11 +38,14 @@ export class User extends Entity {
     @Length(6, 255, { message: "Must be at least 6 character" })
     password: string;
 
+    @OneToMany(() => Post, (post) => post.user)
+    posts: Post[];
+
+    @OneToMany(() => Vote, (vote) => vote.user)
+    votes: Vote[];
+
     @BeforeInsert()
     async hashPassword() {
         this.password = await argon2.hash(this.password);
     }
-
-    @OneToMany(() => Post, (post) => post.user)
-    posts: Post[];
 }
