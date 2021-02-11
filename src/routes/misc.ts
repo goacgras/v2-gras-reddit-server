@@ -5,6 +5,7 @@ import { User } from "../entities/User";
 import { Vote } from "../entities/Vote";
 
 import authMiddleware from "../middleware/check-auth";
+import userMiddleware from "../middleware/user";
 
 const vote = async (req: Request, res: Response) => {
     const { identifier, slug, commentIdentifier, value } = req.body;
@@ -65,5 +66,5 @@ const vote = async (req: Request, res: Response) => {
 };
 
 const router = Router();
-router.post("/vote", authMiddleware, vote);
+router.post("/vote", userMiddleware, authMiddleware, vote);
 export default router;

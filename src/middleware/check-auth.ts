@@ -5,7 +5,7 @@ import { User } from "../entities/User";
 
 //token is in redis, user is in locals
 export default async (
-    req: Request & {
+    _req: Request & {
         session: Session &
             Partial<SessionData> & {
                 username: string;
@@ -16,16 +16,18 @@ export default async (
     next: NextFunction
 ) => {
     try {
-        if (!req.session.accessToken) throw new Error("You are not welcome");
-        const token = req.session.accessToken;
-        if (!token) throw new Error("Unauthenticated");
+        // if (!req.session.accessToken) throw new Error("You are not welcome");
+        // const token = req.session.accessToken;
+        // if (!token) throw new Error("Unauthenticated");
 
-        const { username }: any = jwt.verify(token, process.env.JWT_SECRET!);
-        const user = await User.findOne({ username });
+        // const { username }: any = jwt.verify(token, process.env.JWT_SECRET!);
+        // const user = await User.findOne({ username });
+        // if (!user) throw new Error("Unauthenticated");
+
+        // //save user in locals
+        // res.locals.user = user;
+        const user: User | undefined = res.locals.user;
         if (!user) throw new Error("Unauthenticated");
-
-        //save user in locals
-        res.locals.user = user;
         return next();
     } catch (err) {
         console.log(err);

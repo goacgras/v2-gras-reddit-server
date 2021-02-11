@@ -4,6 +4,7 @@ import { Post } from "../entities/Post";
 import { Sub } from "../entities/Sub";
 
 import authMiddleware from "../middleware/check-auth";
+import userMiddleware from "../middleware/user";
 
 const createPost = async (req: Request, res: Response) => {
     const { title, body, sub } = req.body;
@@ -34,7 +35,14 @@ const getPosts = async (_: Request, res: Response) => {
             order: {
                 createdAt: "DESC",
             },
+            relations: ["comments", "votes", "sub"],
         });
+        if (res.locals.user) {
+            posts.forEach((p) => {
+                p.setUserVote(res.locals.user);
+            });
+        }
+
         return res.json(posts);
     } catch (error) {
         console.log(error);
@@ -81,9 +89,14 @@ const commentOnPost = async (req: Request, res: Response) => {
 };
 
 const router = Router();
-router.post("/", authMiddleware, createPost);
-router.get("/", getPosts);
+router.post("/", userMiddleware, authMiddleware, createPost);
+router.get("/", userMiddleware, getPosts);
 router.get("/:identifier/:slug", getPost);
-router.post("/:identifier/:slug/comments", authMiddleware, commentOnPost);
+router.post(
+    "/:identifier/:slug/comments",
+    userMiddleware,
+    authMiddleware,
+    commentOnPost
+);
 
 export default router;

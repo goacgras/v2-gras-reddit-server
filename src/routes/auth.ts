@@ -7,6 +7,7 @@ import { User } from "../entities/User";
 import { Session, SessionData } from "express-session";
 // import { MyContext } from "../types";
 import authMiddleware from "../middleware/check-auth";
+import userMiddleware from "../middleware/user";
 
 const mapErrors = (errors: Object[]) => {
     return errors.reduce((prev: any, err: any) => {
@@ -98,9 +99,9 @@ const logout = async (req: Request, res: Response) => {
 };
 
 const router = Router();
-router.get("/me", authMiddleware, me);
+router.get("/me", userMiddleware, authMiddleware, me);
 router.post("/register", register);
 router.post("/login", login);
-router.get("/logout", authMiddleware, logout);
+router.get("/logout", userMiddleware, authMiddleware, logout);
 
 export default router;

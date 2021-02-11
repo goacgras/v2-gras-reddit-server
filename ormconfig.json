@@ -7,9 +7,10 @@
     "database": "v2-gras-reddit",
     "synchronize": false,
     "logging": false,
-    "entities": ["dist/entities/**/*.js"],
-    "migrations": ["dist/migrations/**/*.js"],
+    "entities": ["src/entities/**/*.ts"],
+    "migrations": ["src/migrations/**/*.ts"],
     "subscribers": ["src/subscribers/**/*.ts"],
+    "seeds": ["src/seeds/**/*{.ts,.js}"],
     "cli": {
         "entitiesDir": "src/entities",
         "migrationsDir": "src/migrations",
