@@ -5,6 +5,7 @@ import {
     Index,
     BeforeInsert,
     OneToMany,
+    BeforeUpdate,
 } from "typeorm";
 import argon2 from "argon2";
 import { Exclude } from "class-transformer";
@@ -46,6 +47,11 @@ export class User extends Entity {
 
     @BeforeInsert()
     async hashPassword() {
+        this.password = await argon2.hash(this.password);
+    }
+
+    @BeforeUpdate()
+    async hashPasswordAfterChange() {
         this.password = await argon2.hash(this.password);
     }
 }

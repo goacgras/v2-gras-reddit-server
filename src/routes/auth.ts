@@ -2,12 +2,17 @@ import { validate, isEmpty } from "class-validator";
 import { Request, Response, Router } from "express";
 import argon2 from "argon2";
 import jwt from "jsonwebtoken";
+import { v4 } from "uuid";
 
 import { User } from "../entities/User";
 import { Session, SessionData } from "express-session";
 // import { MyContext } from "../types";
 import authMiddleware from "../middleware/check-auth";
 import userMiddleware from "../middleware/user";
+import { sendEmail } from "../util/sendEmails";
+import Redis from "ioredis";
+
+const redis = new Redis();
 
 const mapErrors = (errors: Object[]) => {
     return errors.reduce((prev: any, err: any) => {
@@ -98,10 +103,90 @@ const logout = async (req: Request, res: Response) => {
     });
 };
 
+const forgotPassword = async (req: Request, res: Response) => {
+    const { email } = req.body;
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+        return res.json({ forgotPassword: true });
+    }
+    console.log("user.username: ", user.username);
+    const token = jwt.sign(
+        { username: user.username },
+        process.env.JWT_SECRET!
+    );
+
+    await redis.set(
+        "forget-password:" + token,
+        token,
+        "ex",
+        1000 * 60 * 60 * 24 * 3
+    );
+
+    await sendEmail(
+        email,
+        `<a href="http://localhost:3000/change-password/${token}">reset password</a>`
+    );
+
+    return res.json({ forgotPassword: true });
+};
+
+const changePassword = async (
+    req: Request & {
+        session: Session & Partial<SessionData> & { accessToken?: string };
+    },
+    res: Response
+) => {
+    const { newPassword, token } = req.body;
+    // const { token } = req.params;
+
+    try {
+        let errors: any = {};
+
+        if (isEmpty(newPassword))
+            errors.newPassword = "Password must not be empty";
+        if (Object.keys(errors).length > 0) {
+            return res.status(401).json(errors);
+        }
+        const key = "forget-password:" + token;
+        const userToken = await redis.get(key);
+        console.log("userToken: ", userToken);
+        if (!userToken)
+            return res.status(404).json({ newPassword: "Unauthenticated" });
+
+        const { username }: any = jwt.verify(
+            userToken,
+            process.env.JWT_SECRET!
+        );
+        console.log("Username: ", username);
+        if (!username)
+            return res.status(401).json({ newPassword: "Invalid Token" });
+
+        const user = await User.findOne({ username });
+        if (!user) {
+            return res.status(404).json({ newPassword: "User not found" });
+        }
+
+        user.password = newPassword;
+        user.save();
+
+        // req.session.accessToken = userToken;
+
+        await redis.del(key);
+
+        return res.json(user);
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({ error: "Something went wrong" });
+    }
+};
+
 const router = Router();
 router.get("/me", userMiddleware, authMiddleware, me);
 router.post("/register", register);
 router.post("/login", login);
 router.get("/logout", userMiddleware, authMiddleware, logout);
+router.post("/forgot-password", forgotPassword);
+router.post("/change-password", changePassword);
 
 export default router;

@@ -13,14 +13,18 @@ import miscRoutes from "./routes/misc";
 
 import trim from "./middleware/trim";
 
-import redis from "redis";
+// import redis from "redis";
+import Redis from "ioredis";
 import session from "express-session";
 import connectRedis from "connect-redis";
+// import { sendEmail } from "./util/sendEmails";
 
+// sendEmail("reza@mail.com", "hello there");
 const app = express();
 
 const RedisStore = connectRedis(session);
-const redisClient = redis.createClient();
+const redis = new Redis();
+// const redisClient = redis.createClient();
 
 app.use(express.json());
 app.use(morgan("dev"));
@@ -37,7 +41,7 @@ app.use(
     session({
         name: "qid",
         store: new RedisStore({
-            client: redisClient,
+            client: redis as any,
             disableTouch: true,
         }),
         cookie: {

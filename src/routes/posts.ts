@@ -1,4 +1,5 @@
 import { Request, Response, Router } from "express";
+import { getConnection } from "typeorm";
 import { Comment } from "../entities/Comment";
 import { Post } from "../entities/Post";
 import { Sub } from "../entities/Sub";
