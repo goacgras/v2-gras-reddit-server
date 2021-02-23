@@ -30,13 +30,27 @@ const createPost = async (req: Request, res: Response) => {
     }
 };
 
-const getPosts = async (_: Request, res: Response) => {
+const getPosts = async (req: Request, res: Response) => {
+    const currentPage: number = (req.query.page || 0) as number;
+    const postPerPage: number = (req.query.count || 8) as number;
+    // const { limit, cursor } = req.body;
+    // const realLimit = Math.min(50, limit);
+    // const realLimitPlusOne = realLimit + 1;
+    // let dateLimit = new Date(parseInt(cursor));
     try {
+        // const posts = await getConnection().query(`
+        //     select *
+        //     from posts
+        //     ${cursor ? `where "createdAt" < ${dateLimit} ` : null}
+        //     limit ${realLimitPlusOne}
+        // `);
         const posts = await Post.find({
             order: {
                 createdAt: "DESC",
             },
             relations: ["comments", "votes", "sub"],
+            skip: currentPage * postPerPage,
+            take: postPerPage,
         });
         if (res.locals.user) {
             posts.forEach((p) => {
@@ -44,6 +58,10 @@ const getPosts = async (_: Request, res: Response) => {
             });
         }
 
+        // let paginatedPosts = {
+        //     hasmore: true,
+        //     posts,
+        // };
         return res.json(posts);
     } catch (error) {
         console.log(error);
