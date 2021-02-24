@@ -1,5 +1,5 @@
 import { Request, Response, Router } from "express";
-import { getConnection } from "typeorm";
+import { createQueryBuilder, getConnection, getRepository } from "typeorm";
 import { Comment } from "../entities/Comment";
 import { Post } from "../entities/Post";
 import { Sub } from "../entities/Sub";
@@ -30,20 +30,67 @@ const createPost = async (req: Request, res: Response) => {
     }
 };
 
+const getCursorPaginatedPosts = async (req: Request, res: Response) => {
+    const limit: number = (req.query.limit || 0) as number;
+    const cursor: string = (req.query.cursor || null) as string;
+
+    const realLimit = Math.min(50, limit);
+    const realLimitPlusOne = realLimit + 1;
+
+    try {
+        // const qb = getConnection()
+        //     .getRepository(Post)
+        //     .createQueryBuilder("p")
+        //     .orderBy('p."createdAt"', "DESC")
+        //     .take(realLimitPlusOne);
+
+        // const qb = getConnection()
+        //     .createQueryBuilder()
+        //     .select("p")
+        //     .from(Post, "p")
+        //     .leftJoinAndSelect("p.sub", "sub")
+        //     .orderBy('p."createdAt"', "DESC")
+        //     .take(realLimitPlusOne);
+
+        const qb = getRepository(Post)
+            .createQueryBuilder("p")
+            .leftJoinAndSelect("p.sub", "sub")
+            .leftJoinAndSelect("p.comments", "comment")
+            .leftJoinAndSelect("p.votes", "vote")
+            .orderBy("p.createdAt", "DESC")
+            .take(realLimitPlusOne);
+
+        if (cursor) {
+            qb.where('p."createdAt" < :cursor', { cursor });
+        }
+        const posts = await qb.getMany();
+        console.log("Posts: ", posts);
+        if (res.locals.user) {
+            posts.forEach((p) => {
+                p.setUserVote(res.locals.user);
+            });
+        }
+
+        console.log("postLength: ", posts.length);
+        console.log("realLimitPlusOne: ", realLimitPlusOne);
+
+        const paginatedPosts = {
+            hasMore: posts.length === realLimitPlusOne,
+            posts: posts.slice(0, realLimit),
+        };
+
+        return res.json(paginatedPosts);
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({ error: "Something went wrong" });
+    }
+};
+
 const getPosts = async (req: Request, res: Response) => {
     const currentPage: number = (req.query.page || 0) as number;
     const postPerPage: number = (req.query.count || 8) as number;
-    // const { limit, cursor } = req.body;
-    // const realLimit = Math.min(50, limit);
-    // const realLimitPlusOne = realLimit + 1;
-    // let dateLimit = new Date(parseInt(cursor));
+
     try {
-        // const posts = await getConnection().query(`
-        //     select *
-        //     from posts
-        //     ${cursor ? `where "createdAt" < ${dateLimit} ` : null}
-        //     limit ${realLimitPlusOne}
-        // `);
         const posts = await Post.find({
             order: {
                 createdAt: "DESC",
@@ -58,10 +105,6 @@ const getPosts = async (req: Request, res: Response) => {
             });
         }
 
-        // let paginatedPosts = {
-        //     hasmore: true,
-        //     posts,
-        // };
         return res.json(posts);
     } catch (error) {
         console.log(error);
@@ -138,6 +181,7 @@ const getPostComment = async (req: Request, res: Response) => {
 const router = Router();
 router.post("/", userMiddleware, authMiddleware, createPost);
 router.get("/", userMiddleware, getPosts);
+router.get("/paginated", userMiddleware, getCursorPaginatedPosts);
 router.get("/:identifier/:slug", userMiddleware, getPost);
 router.post(
     "/:identifier/:slug/comments",
