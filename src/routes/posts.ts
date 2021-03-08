@@ -31,7 +31,7 @@ const createPost = async (req: Request, res: Response) => {
 };
 
 const getCursorPaginatedPosts = async (req: Request, res: Response) => {
-    const limit: number = (req.query.limit || 0) as number;
+    const limit: number = (req.query.limit || 10) as number;
     const cursor: string = (req.query.cursor || null) as string;
 
     const realLimit = Math.min(50, limit);
@@ -61,10 +61,10 @@ const getCursorPaginatedPosts = async (req: Request, res: Response) => {
             .take(realLimitPlusOne);
 
         if (cursor) {
-            qb.where('p."createdAt" < :cursor', { cursor });
+            qb.where('p."createdAt" <= :cursor', { cursor });
         }
         const posts = await qb.getMany();
-        console.log("Posts: ", posts);
+        // console.log("Posts: ", posts);
         if (res.locals.user) {
             posts.forEach((p) => {
                 p.setUserVote(res.locals.user);
@@ -105,6 +105,7 @@ const getPosts = async (req: Request, res: Response) => {
             });
         }
 
+        console.log(`there are ${posts.length} posts total`);
         return res.json(posts);
     } catch (error) {
         console.log(error);

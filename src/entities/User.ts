@@ -23,7 +23,7 @@ export class User extends Entity {
         Object.assign(this, user);
     }
 
-    @Index()
+    @Index() //improve performance
     @IsEmail(undefined, { message: "Must be a valid email address" })
     @Length(1, 255, { message: "Email is empty" })
     @Column({ unique: true })
